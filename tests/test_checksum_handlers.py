@@ -1,5 +1,6 @@
 
 import json
+import mock
 
 from tornado.testing import *
 from tornado.web import Application
@@ -12,6 +13,9 @@ from checksum import __version__ as checksum_version
 from checksum.lib.jobrunner import LocalQAdapter
 from tests.test_utils import DummyConfig
 
+"""
+
+"""
 class TestChecksumHandlers(AsyncHTTPTestCase):
 
     API_BASE="/api/1.0"
@@ -33,7 +37,9 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
 
         response_as_json = json.loads(response.body)
 
-        # TODO
+        # TODO if we want more tests on the same
+        #      server, this needs to become
+        #      a global variable.
         job_id = 1
 
         self.assertEqual(response.code, 202)
@@ -45,13 +51,28 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
         self.assertEqual(response_as_json["state"], State.STARTED)
 
 
+    def test_start_checksum_with_shell_injection(self):
+        body = {"path_to_md5_sum_file": "tests/$(cat /etc/shadow)"}
+        response = self.fetch(
+            self.API_BASE + "/start/ok_checksums",
+            method="POST",
+            body=json_encode(body))
+
+        self.assertEqual(response.code, 500)
 
 
     def test_check_status(self):
-        pass
+        with mock.patch("checksum.lib.jobrunner.LocalQAdapter.status", return_value=State.DONE) as m:
+            response = self.fetch(self.API_BASE + "/status/1")
+            response_as_json = json.loads(response.body)
+            self.assertEqual(response_as_json["state"], State.DONE)
+            m.assert_called_with("1")
 
     def test_stop_checksum(self):
-        pass
+        with mock.patch("checksum.lib.jobrunner.LocalQAdapter.status_all") as m:
+            response = self.fetch(self.API_BASE + "/stop/all", method="POST", body="")
+            self.assertEqual(response.code, 200)
+
 
     def test_version(self):
         response = self.fetch(self.API_BASE + "/version")

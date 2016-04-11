@@ -123,3 +123,29 @@ class StatusHandler(BaseChecksumHandler):
 
         self.write_json(status)
 
+class StopHandler(BaseChecksumHandler):
+    """
+    Stop one or all jobs.
+    """
+
+    def post(self, job_id):
+        """
+        Stops the job with the specified id.
+        :param job_id: of job to stop, or set to "all" to stop all jobs
+        """
+        try:
+            if job_id == "all":
+                log.info("Attempting to stop all jobs.")
+                self.runner_service.stop_all()
+                log.info("Stopped all jobs!")
+                self.set_status(200)
+            elif job_id:
+                log.info("Attempting to stop job: {}".format(job_id))
+                self.runner_service.stop(job_id)
+                self.set_status(200)
+            else:
+                ArteriaUsageException("Unknown job to stop")
+        except ArteriaUsageException as e:
+            log.warning("Failed stopping job: {}. Message: ".format(job_id, e.message))
+            self.send_error(500, reason=e.message)
+
