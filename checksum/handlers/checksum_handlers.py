@@ -57,6 +57,26 @@ class StartHandler(BaseChecksumHandler):
             return False
 
     """
+    Checks if a `md5sum_file_path` is contained in the runfolder
+    :param: runfolder path to the runfolder
+    :param: md5sum_file_path path to the md5sum_file_path
+    :return: True if `md5sum_file_path` is a file in the runfolder
+    """
+    @staticmethod
+    def _validate_md5sum_path(runfolder, md5sum_file_path):
+
+        runfolder_abs_path = os.path.abspath(runfolder)
+        path_to_md5_sum_file_abs_path = os.path.abspath(md5sum_file_path)
+
+        is_sub_dir = os.path.commonprefix([runfolder_abs_path, path_to_md5_sum_file_abs_path]) is runfolder_abs_path
+
+
+        return is_sub_dir and \
+               os.path.isfile(path_to_md5_sum_file_abs_path)
+
+
+
+    """
     Start a checksumming process.
 
     The request needs to pass the path the md5 sum file to check in "path_to_md5_sum_file". This path
@@ -74,8 +94,8 @@ class StartHandler(BaseChecksumHandler):
 
         path_to_md5_sum_file = os.path.abspath(request_data["path_to_md5_sum_file"])
 
-        if not os.path.isfile(path_to_md5_sum_file):
-            raise ArteriaUsageException("{} is not a file!".format(path_to_md5_sum_file))
+        if not StartHandler._validate_md5sum_path(monitored_dir + "/" + runfolder, path_to_md5_sum_file):
+            raise ArteriaUsageException("{} is not a valid file!".format(path_to_md5_sum_file))
 
         #md5sum_file = self.request.body["md5sum_file"]
         #start(self, cmd, nbr_of_cores, run_dir, stdout=None, stderr=None)
