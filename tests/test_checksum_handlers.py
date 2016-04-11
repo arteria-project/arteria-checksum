@@ -36,19 +36,13 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
         # TODO
         job_id = 1
 
-        self.assertEqual(response.code, 200)
+        self.assertEqual(response.code, 202)
         self.assertEqual(response_as_json["job_id"], job_id)
         self.assertEqual(response_as_json["service_version"], checksum_version)
 
         expected_link = "http://localhost:{0}/api/1.0/status/{1}".format(self.get_http_port(), job_id)
         self.assertEqual(response_as_json["link"], expected_link)
         self.assertEqual(response_as_json["state"], State.STARTED)
-
-        print response_as_json["link"]
-
-        status_reponse = self.fetch(response_as_json["link"])
-        self.assertEqual(status_reponse.code, 202)
-        status_respons_as_json = json.loads(status_reponse)
 
 
 
