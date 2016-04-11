@@ -68,11 +68,18 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
             self.assertEqual(response_as_json["state"], State.DONE)
             m.assert_called_with("1")
 
-    def test_stop_checksum(self):
-        with mock.patch("checksum.lib.jobrunner.LocalQAdapter.status_all") as m:
+    def test_stop_all_checksum(self):
+        with mock.patch("checksum.lib.jobrunner.LocalQAdapter.stop_all") as m:
             response = self.fetch(self.API_BASE + "/stop/all", method="POST", body="")
             self.assertEqual(response.code, 200)
+            m.assert_called_with()
 
+
+    def test_stop_one_checksum(self):
+        with mock.patch("checksum.lib.jobrunner.LocalQAdapter.stop") as m:
+            response = self.fetch(self.API_BASE + "/stop/1", method="POST", body="")
+            self.assertEqual(response.code, 200)
+            m.assert_called_with("1")
 
     def test_version(self):
         response = self.fetch(self.API_BASE + "/version")
