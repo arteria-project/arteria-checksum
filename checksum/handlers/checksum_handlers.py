@@ -97,12 +97,7 @@ class StartHandler(BaseChecksumHandler):
         if not StartHandler._validate_md5sum_path(monitored_dir + "/" + runfolder, path_to_md5_sum_file):
             raise ArteriaUsageException("{} is not a valid file!".format(path_to_md5_sum_file))
 
-        #md5sum_file = self.request.body["md5sum_file"]
-        #start(self, cmd, nbr_of_cores, run_dir, stdout=None, stderr=None)
         cmd = " ".join(["md5sum -c", path_to_md5_sum_file])
-        print cmd
-        print os.path.abspath(monitored_dir)
-        print path_to_md5_sum_file
         job_id = self.runner_service.start(cmd, nbr_of_cores=1, run_dir=monitored_dir, stdout=None, stderr=None)
 
         status_end_point = "{0}://{1}{2}".format(
