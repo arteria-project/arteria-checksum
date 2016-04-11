@@ -3,7 +3,8 @@ from tornado.web import URLSpec as url
 
 from arteria.web.app import AppService
 
-from checksum.handlers.checksum_handlers import VersionHandler
+from checksum.handlers.checksum_handlers import VersionHandler, StartHandler, StatusHandler
+from checksum.lib.jobrunner import LocalQAdapter
 
 def routes(**kwargs):
     """
@@ -15,10 +16,9 @@ def routes(**kwargs):
 
     return [
         url(r"/api/1.0/version", VersionHandler, name="version", kwargs=kwargs),
-        # url(r"/api/1.0/start/([\w_-]+)", StartHandler, name="start", kwargs=kwargs),
-        # url(r"/api/1.0/status/(\d*)", StatusHandler, name="status", kwargs=kwargs),
+        url(r"/api/1.0/start/([\w_-]+)", StartHandler, name="start", kwargs=kwargs),
+        url(r"/api/1.0/status/(\d*)", StatusHandler, name="status", kwargs=kwargs),
         # url(r"/api/1.0/stop/([\d|all]*)", StopHandler, name="stop", kwargs=kwargs),
-        # url(r"/api/1.0/logs/([\w_-]+)", Bcl2FastqLogHandler, name="logs", kwargs=kwargs)
     ]
 
 def start():
@@ -27,4 +27,8 @@ def start():
     """
 
     app_svc = AppService.create(__package__)
-    app_svc.start(routes(config=app_svc.config_svc))
+
+    number_of_cores_to_use = app_svc.config_svc["number_of_cores"]
+    runner_service = LocalQAdapter(nbr_of_cores=2, interval = 2, priority_method = "fifo")
+
+    app_svc.start(routes(config=app_svc.config_svc, runner_service = runner_service))

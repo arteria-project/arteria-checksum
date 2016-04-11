@@ -1,4 +1,4 @@
-from localq import LocalQServer, Status
+from localq.localQ_server import LocalQServer, Status
 from arteria.web.state import State as arteria_state
 
 class JobRunnerAdapter:
@@ -79,10 +79,9 @@ class LocalQAdapter(JobRunnerAdapter):
         else:
             return arteria_state.NONE
 
-    # TODO Make configurable
     def __init__(self, nbr_of_cores, interval = 30, priority_method = "fifo"):
         self.nbr_of_cores = nbr_of_cores
-        self.server = LocalQServer(nbr_of_cores, interval, priority_method)
+        self.server = LocalQServer(nbr_of_cores, interval, priority_method, use_shell=True)
         self.server.run()
 
     def start(self, cmd, nbr_of_cores, run_dir, stdout=None, stderr=None):
