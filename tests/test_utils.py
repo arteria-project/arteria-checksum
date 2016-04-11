@@ -2,7 +2,8 @@
 class TestUtils:
 
     DUMMY_CONFIG = {
-        "monitored_directory": "tests/resources/"
+        "monitored_directory": "tests/resources/",
+        "md5_log_directory": "/tmp"
     }
 
 class DummyConfig:

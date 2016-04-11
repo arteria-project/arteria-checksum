@@ -2,6 +2,8 @@
 import json
 import logging
 import os
+import datetime
+
 
 from arteria.exceptions import ArteriaUsageException
 from arteria.web.state import State
@@ -21,9 +23,12 @@ class BaseChecksumHandler(BaseRestHandler):
         """
         Ensures that any parameters feed to this are available
         to subclasses.
+
+        :param: config configuration used by the service
+        :param: runner_service to use. Must fulfill `checksum.lib.jobrunner.JobRunnerAdapter` interface
+
         """
         self.config = config
-        # TODO Load runnner service from config!
         self.runner_service = runner_service
 
 
@@ -97,8 +102,17 @@ class StartHandler(BaseChecksumHandler):
         if not StartHandler._validate_md5sum_path(monitored_dir + "/" + runfolder, path_to_md5_sum_file):
             raise ArteriaUsageException("{} is not a valid file!".format(path_to_md5_sum_file))
 
+        md5sum_log_file = "{}/{}_{}".format(self.config["md5_log_directory"],
+                                            runfolder,
+                                            datetime.datetime.now().isoformat())
+
+
         cmd = " ".join(["md5sum -c", path_to_md5_sum_file])
-        job_id = self.runner_service.start(cmd, nbr_of_cores=1, run_dir=monitored_dir, stdout=None, stderr=None)
+        job_id = self.runner_service.start(cmd,
+                                           nbr_of_cores=1,
+                                           run_dir=monitored_dir,
+                                           stdout=md5sum_log_file,
+                                           stderr=md5sum_log_file)
 
         status_end_point = "{0}://{1}{2}".format(
             self.request.protocol,
@@ -109,7 +123,8 @@ class StartHandler(BaseChecksumHandler):
                 "job_id": job_id,
                 "service_version": version,
                 "link": status_end_point,
-                "state": State.STARTED}
+                "state": State.STARTED,
+                "md5sum_log": md5sum_log_file}
 
         self.set_status(202, reason="started processing")
         self.write_object(response_data)
