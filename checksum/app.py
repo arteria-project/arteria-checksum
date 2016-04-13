@@ -29,6 +29,6 @@ def start():
     app_svc = AppService.create(__package__)
 
     number_of_cores_to_use = app_svc.config_svc["number_of_cores"]
-    runner_service = LocalQAdapter(nbr_of_cores=2, interval = 2, priority_method = "fifo")
+    runner_service = LocalQAdapter(nbr_of_cores=number_of_cores_to_use, interval = 2, priority_method = "fifo")
 
     app_svc.start(routes(config=app_svc.config_svc, runner_service = runner_service))
