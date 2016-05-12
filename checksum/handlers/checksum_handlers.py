@@ -61,23 +61,18 @@ class StartHandler(BaseChecksumHandler):
         else:
             return False
 
-    """
-    Checks if a `md5sum_file_path` is contained in the runfolder
-    :param: runfolder path to the runfolder
-    :param: md5sum_file_path path to the md5sum_file_path
-    :return: True if `md5sum_file_path` is a file in the runfolder
-    """
     @staticmethod
     def _validate_md5sum_path(runfolder, md5sum_file_path):
+        """
+        Checks if a `md5sum_file_path` is contained in the runfolder
+        :param: runfolder path to the runfolder
+        :param: md5sum_file_path path to the md5sum_file_path
+        :return: True if `md5sum_file_path` is a file in the runfolder
+        """
+        common_prefix = os.path.commonprefix([runfolder, md5sum_file_path])
+        is_sub_dir = common_prefix is runfolder
 
-        runfolder_abs_path = os.path.abspath(runfolder)
-        path_to_md5_sum_file_abs_path = os.path.abspath(md5sum_file_path)
-
-        is_sub_dir = os.path.commonprefix([runfolder_abs_path, path_to_md5_sum_file_abs_path]) is runfolder_abs_path
-
-
-        return is_sub_dir and \
-               os.path.isfile(path_to_md5_sum_file_abs_path)
+        return is_sub_dir and os.path.isfile(md5sum_file_path)
 
 
 
@@ -87,7 +82,7 @@ class StartHandler(BaseChecksumHandler):
     The request needs to pass the path the md5 sum file to check in "path_to_md5_sum_file". This path
     has to point to a file in the runfolder.
 
-    :param runfolder: name of the runfolder we want to start bcl2fastq for
+    :param runfolder: name of the runfolder we want to start checksumming for
 
     """
     def post(self, runfolder):
@@ -97,15 +92,15 @@ class StartHandler(BaseChecksumHandler):
 
         request_data = json.loads(self.request.body)
 
-        path_to_md5_sum_file = os.path.abspath(request_data["path_to_md5_sum_file"])
+        path_to_runfolder = os.path.join(monitored_dir, runfolder)
+        path_to_md5_sum_file = os.path.join(monitored_dir, runfolder, request_data["path_to_md5_sum_file"])
 
-        if not StartHandler._validate_md5sum_path(monitored_dir + "/" + runfolder, path_to_md5_sum_file):
+        if not StartHandler._validate_md5sum_path(path_to_runfolder, path_to_md5_sum_file):
             raise ArteriaUsageException("{} is not a valid file!".format(path_to_md5_sum_file))
 
         md5sum_log_file = "{}/{}_{}".format(self.config["md5_log_directory"],
                                             runfolder,
                                             datetime.datetime.now().isoformat())
-
 
         cmd = " ".join(["md5sum -c", path_to_md5_sum_file])
         job_id = self.runner_service.start(cmd,

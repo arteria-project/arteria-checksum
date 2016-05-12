@@ -10,6 +10,7 @@ from arteria.web.state import State
 
 from checksum.app import routes
 from checksum import __version__ as checksum_version
+from checksum.handlers.checksum_handlers import StartHandler
 from checksum.lib.jobrunner import LocalQAdapter
 from tests.test_utils import DummyConfig
 
@@ -28,8 +29,38 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
                 config=DummyConfig(),
                 runner_service=self.runner_service))
 
+    ok_runfolder = "tests/resources/ok_checksums"
+
+
+    def test__validate_runfolder_exists_ok(self):
+        is_valid = StartHandler._validate_runfolder_exists("ok_checksums", "tests/resources/")
+        self.assertTrue(is_valid)
+
+    def test__validate_runfolder_exists_not_ok(self):
+        not_valid = StartHandler._validate_runfolder_exists("invalid_checksums", "tests/resources/")
+        self.assertFalse(not_valid)
+
+    def test__validate_md5sum_path_ok(self):
+        valid = StartHandler._validate_md5sum_path(runfolder=TestChecksumHandlers.ok_runfolder,
+                                                   md5sum_file_path=os.path.join(TestChecksumHandlers.ok_runfolder,
+                                                                                 "md5_checksums"))
+        self.assertTrue(valid)
+
+    def test__validate_md5sum_nested_path_ok(self):
+        nested_runfolder = "tests/resources/ok_nested_dir/"
+        valid = StartHandler._validate_md5sum_path(runfolder=nested_runfolder,
+                                                   md5sum_file_path=os.path.join(nested_runfolder,
+                                                                                 "./md5sums/empty_file"))
+        self.assertTrue(valid)
+
+    def test__validate_md5sum_path_not_ok(self):
+        not_valid = StartHandler._validate_md5sum_path(runfolder=TestChecksumHandlers.ok_runfolder,
+                                                       md5sum_file_path=os.path.join(TestChecksumHandlers.ok_runfolder,
+                                                                                     "no_file"))
+        self.assertFalse(not_valid)
+
     def test_start_checksum(self):
-        body = {"path_to_md5_sum_file": "tests/resources/ok_checksums/md5_checksums"}
+        body = {"path_to_md5_sum_file": "md5_checksums"}
         response = self.fetch(
             self.API_BASE + "/start/ok_checksums",
             method="POST",
@@ -49,7 +80,6 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
         expected_link = "http://localhost:{0}/api/1.0/status/{1}".format(self.get_http_port(), job_id)
         self.assertEqual(response_as_json["link"], expected_link)
         self.assertEqual(response_as_json["state"], State.STARTED)
-
 
     def test_start_checksum_with_shell_injection(self):
         body = {"path_to_md5_sum_file": "tests/$(cat /etc/shadow)"}
