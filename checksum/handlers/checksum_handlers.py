@@ -74,6 +74,14 @@ class StartHandler(BaseChecksumHandler):
 
         return is_sub_dir and os.path.isfile(md5sum_file_path)
 
+    @staticmethod
+    def _is_valid_log_dir(log_dir):
+        """
+        Check if the log dir is valid. Right now only checks it is a directory.
+        :param: log_dir to check
+        :return: True is valid dir, else False
+        """
+        return os.path.isdir(log_dir)
 
 
     """
@@ -98,7 +106,13 @@ class StartHandler(BaseChecksumHandler):
         if not StartHandler._validate_md5sum_path(path_to_runfolder, path_to_md5_sum_file):
             raise ArteriaUsageException("{} is not a valid file!".format(path_to_md5_sum_file))
 
-        md5sum_log_file = "{}/{}_{}".format(self.config["md5_log_directory"],
+
+        md5sum_log_dir = self.config["md5_log_directory"]
+        
+        if not StartHandler._is_valid_log_dir(md5sum_log_dir):
+            raise ArteriaUsageException("{} is not a directory.!".format(md5sum_log_dir))
+
+        md5sum_log_file = "{}/{}_{}".format(md5sum_log_dir,
                                             runfolder,
                                             datetime.datetime.now().isoformat())
 
