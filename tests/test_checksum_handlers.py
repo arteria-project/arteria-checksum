@@ -119,3 +119,15 @@ class TestChecksumHandlers(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(json.loads(response.body), expected_result)
 
+    def test_raise_exception_on_log_dir_problem(self):
+        with mock.patch("checksum.handlers.checksum_handlers.StartHandler._is_valid_log_dir", return_value=False):
+            body = {"path_to_md5_sum_file": "md5_checksums"}
+            response = self.fetch(
+                    self.API_BASE + "/start/ok_checksums",
+                    method="POST",
+                    body=json_encode(body))
+
+            self.assertEqual(response.code, 500)
+
+
+
