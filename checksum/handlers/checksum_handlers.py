@@ -158,7 +158,7 @@ class StatusHandler(BaseChecksumHandler):
         else:
             all_status = self.runner_service.status_all()
             status_dict = {}
-            for k,v in all_status.iteritems():
+            for k,v in all_status.items():
                 status_dict[k] = {"state": v}
             status = status_dict
 

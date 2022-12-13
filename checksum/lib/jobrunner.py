@@ -98,6 +98,6 @@ class LocalQAdapter(JobRunnerAdapter):
 
     def status_all(self):
         jobs_and_status = {}
-        for k, v in self.server.get_status_all().iteritems():
+        for k, v in self.server.get_status_all().items():
             jobs_and_status[k] = LocalQAdapter.localq2arteria_status(v)
         return jobs_and_status
