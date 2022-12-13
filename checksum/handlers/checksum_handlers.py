@@ -123,6 +123,8 @@ class StartHandler(BaseChecksumHandler):
                                            stdout=md5sum_log_file,
                                            stderr=md5sum_log_file)
 
+        log.info("Scheduling command: {}".format(cmd))
+
         status_end_point = "{0}://{1}{2}".format(
             self.request.protocol,
             self.request.host,
