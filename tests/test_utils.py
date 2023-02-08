@@ -49,21 +49,3 @@ def gen_dummy_data(filesize=10**4, n_files=5):
                     stdout=f)
 
     return folder, "md5_checksums"
-
-
-@pytest.fixture(scope="session")
-def big_checksum():
-    """
-    Generate a set of big files and their checksums.
-
-    Return
-    ------
-    (folder path, checksum file): (str, str)
-        Temporary Folder containing the files, as well as the name of the file
-        containing the checksums.
-    """
-    folder, checksum_file = gen_dummy_data(10**8)  # 100MB
-
-    yield folder.name.split('/')[-1], checksum_file
-
-    folder.close()
