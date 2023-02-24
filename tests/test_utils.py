@@ -19,7 +19,7 @@ class DummyConfig:
 
 def gen_dummy_data(filesize=10**4, n_files=5):
     """
-    Initialize a folder containinga set of files and their checksum
+    Initialize a folder containing a set of files and their checksum
 
     Parameters
     ----------
