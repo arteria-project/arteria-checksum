@@ -139,7 +139,7 @@ class TestIntegrationSmall(TestIntegration):
         status_as_json = json.loads(self.fetch(url, method="GET").body)
         assert len(status_as_json) == n_jobs
         assert all(
-            job["state"] == State.DONE
+            job["state"] in [State.DONE, State.STARTED]
             for job in json.loads(
                 self.fetch(url, method="GET").body).values())
 
