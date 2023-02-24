@@ -162,7 +162,7 @@ class TestRunnerService:
     @pytest.mark.asyncio
     async def test_start_stress_test(self):
         """
-        Test it is possible to start 1000 jobs (almost) simultaneously.
+        Test it is possible to start 100 jobs (almost) simultaneously.
         """
         n_job = 100
         checksum_service = RunnerService(n_job)
