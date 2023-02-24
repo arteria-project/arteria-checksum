@@ -149,7 +149,7 @@ class TestIntegrationSmall(TestIntegration):
         """
         body = {"path_to_md5_sum_file": "tests/$(cat /etc/shadow)"}
         response = self.fetch(
-            self.API_BASE + "/start/ok_checksums",
+            self.API_BASE + f"/start/{self.foldername}",
             method="POST",
             body=json_encode(body))
 
