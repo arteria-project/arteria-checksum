@@ -86,12 +86,20 @@ class Job:
     def cancel(self):
         """
         Cancel the job.
+
+        Returns
+        -------
+        Current state
+            current state after the job has been cancelled
+            OBS: if the job was in `DONE` or `ERROR` before it will still be
+            in that state.
         """
         if self.get_status() == arteria_state.STARTED:
             log.info(f"Cancelling job {self.job_id} (`{self.cmd}`)")
             self._proc.terminate()
             self._proc.wait()
             self._status = arteria_state.CANCELLED
+        return self._status
 
 
 class RunnerService:
