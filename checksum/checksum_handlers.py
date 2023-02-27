@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import datetime
+import subprocess
 
 
 from arteria.exceptions import ArteriaUsageException
@@ -121,18 +122,18 @@ class StartHandler(BaseChecksumHandler):
                     f"{md5sum_log_dir} is not a directory.!")
 
         date = datetime.datetime.now().isoformat()
-        md5sum_log_file = open(
-            f"{md5sum_log_dir}/{runfolder}_{date}", mode='w')
 
         relative_path_to_md5sum_file = os.path.join(
                 runfolder, request_data["path_to_md5_sum_file"])
 
         cmd = ["md5sum",  "-c", relative_path_to_md5sum_file]
-        job_id = await self.runner_service.start(
-                cmd,
-                cwd=monitored_dir,
-                stdout=md5sum_log_file,
-                stderr=md5sum_log_file)
+
+        with open(f"{md5sum_log_dir}/{runfolder}_{date}", mode='w') as md5sum_log_file:
+            job_id = await self.runner_service.start(
+                    cmd,
+                    cwd=monitored_dir,
+                    stdout=md5sum_log_file,
+                    stderr=subprocess.STDOUT)
 
         status_end_point = "{0}://{1}{2}".format(
             self.request.protocol,

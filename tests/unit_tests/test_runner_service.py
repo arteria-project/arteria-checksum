@@ -35,14 +35,14 @@ class TestJob:
         job_id = 2
         msg = "test"
         cmd = ["echo", msg]
-        stdout = tempfile.NamedTemporaryFile(mode='r')
-        job = Job(job_id, cmd, stdout=stdout)
+        with tempfile.NamedTemporaryFile(mode='r') as stdout:
+            job = Job(job_id, cmd, stdout=stdout)
 
-        job.wait()
-        stdout.seek(0)
+            job.wait()
+            stdout.seek(0)
 
-        assert job.get_status() == arteria_state.DONE
-        assert stdout.read() == f"{msg}\n"
+            assert job.get_status() == arteria_state.DONE
+            assert stdout.read() == f"{msg}\n"
 
     def test_set_cwd(self):
         """
@@ -121,17 +121,17 @@ class TestRunnerService:
         Test it is possible to start a job.
         """
         msg = "test"
-        stdout = tempfile.NamedTemporaryFile(mode='r')
-        checksum_service = RunnerService(5)
-        await checksum_service.start(["echo", msg], stdout=stdout)
+        with tempfile.NamedTemporaryFile(mode='r') as stdout:
+            checksum_service = RunnerService(5)
+            await checksum_service.start(["echo", msg], stdout=stdout)
 
-        checksum_service._job_history[0].wait()
-        stdout.seek(0)
+            checksum_service._job_history[0].wait()
+            stdout.seek(0)
 
-        assert stdout.read() == f"{msg}\n"
+            assert stdout.read() == f"{msg}\n"
 
-        status = checksum_service._job_history[0].get_status() 
-        assert status == arteria_state.DONE
+            status = checksum_service._job_history[0].get_status() 
+            assert status == arteria_state.DONE
 
     @pytest.mark.asyncio
     async def test_list_full(self):

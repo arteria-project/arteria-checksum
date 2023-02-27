@@ -61,6 +61,9 @@ class TestIntegration(AsyncHTTPTestCase):
             status = self.fetch(response_as_json["link"])
             status_as_json = json.loads(status.body)
 
+        with open(response_as_json['md5sum_log'], 'r') as md5sum_log_file:
+            assert md5sum_log_file.read()
+
         return status_as_json["state"]
 
 
@@ -162,6 +165,15 @@ class TestIntegrationBig(TestIntegration):
 
         self.folder, self.checksum_file = gen_dummy_data(10**7)  # 10MB
         self.foldername = self.folder.name.split('/')[-1]
+
+    def test_checksum(self):
+        """
+        Test checking a sane file returns state done.
+        """
+        url = self.API_BASE + f"/start/{self.foldername}"
+        body = {"path_to_md5_sum_file": self.checksum_file}
+
+        assert self._test_checksum_folder(url, body) == State.DONE
 
     def test_stop(self):
         url = self.API_BASE + f"/start/{self.foldername}"
