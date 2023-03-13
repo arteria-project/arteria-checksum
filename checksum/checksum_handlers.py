@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import datetime
+import subprocess
 
 
 from arteria.exceptions import ArteriaUsageException
@@ -10,9 +11,9 @@ from arteria.web.state import State
 from arteria.web.handlers import BaseRestHandler
 
 from checksum import __version__ as version
-from checksum.lib.jobrunner import LocalQAdapter
 
 log = logging.getLogger(__name__)
+
 
 class BaseChecksumHandler(BaseRestHandler):
     """
@@ -25,7 +26,7 @@ class BaseChecksumHandler(BaseRestHandler):
         to subclasses.
 
         :param: config configuration used by the service
-        :param: runner_service to use. Must fulfill `checksum.lib.jobrunner.JobRunnerAdapter` interface
+        :param: runner_service to use.
 
         """
         self.config = config
@@ -41,7 +42,7 @@ class VersionHandler(BaseChecksumHandler):
         """
         Returns the version of the checksum-service
         """
-        self.write_object({"version": version })
+        self.write_object({"version": version})
 
 
 class StartHandler(BaseChecksumHandler):
@@ -55,8 +56,9 @@ class StartHandler(BaseChecksumHandler):
     @staticmethod
     def _validate_runfolder_exists(runfolder, monitored_dir):
         if os.path.isdir(monitored_dir):
-            sub_folders = [ name for name in os.listdir(monitored_dir)
-                            if os.path.isdir(os.path.join(monitored_dir, name)) ]
+            sub_folders = [
+                    name for name in os.listdir(monitored_dir)
+                    if os.path.isdir(os.path.join(monitored_dir, name))]
             return runfolder in sub_folders
         else:
             return False
@@ -83,45 +85,55 @@ class StartHandler(BaseChecksumHandler):
         """
         return os.path.isdir(log_dir)
 
+    async def post(self, runfolder):
+        """
+        Start a checksumming process.
 
-    """
-    Start a checksumming process.
+        The request needs to pass the path the md5 sum file to check in
+        "path_to_md5_sum_file". This path has to point to a file in the
+        runfolder.
 
-    The request needs to pass the path the md5 sum file to check in "path_to_md5_sum_file". This path
-    has to point to a file in the runfolder.
+        :param runfolder: name of the runfolder we want to start checksumming
+        for.
 
-    :param runfolder: name of the runfolder we want to start checksumming for
-
-    """
-    def post(self, runfolder):
+        """
 
         monitored_dir = self.config["monitored_directory"]
-        StartHandler._validate_runfolder_exists(runfolder, monitored_dir)
+        if not StartHandler._validate_runfolder_exists(
+                runfolder, monitored_dir):
+            raise ArteriaUsageException(
+                    f"{runfolder} does not exist under {monitored_dir}!")
 
         request_data = json.loads(self.request.body)
 
         path_to_runfolder = os.path.join(monitored_dir, runfolder)
-        path_to_md5_sum_file = os.path.join(monitored_dir, runfolder, request_data["path_to_md5_sum_file"])
+        path_to_md5_sum_file = os.path.join(
+                monitored_dir, runfolder, request_data["path_to_md5_sum_file"])
 
-        if not StartHandler._validate_md5sum_path(path_to_runfolder, path_to_md5_sum_file):
-            raise ArteriaUsageException("{} is not a valid file!".format(path_to_md5_sum_file))
-
+        if not StartHandler._validate_md5sum_path(
+                path_to_runfolder, path_to_md5_sum_file):
+            raise ArteriaUsageException(
+                    f"{path_to_md5_sum_file} is not a valid file!")
 
         md5sum_log_dir = self.config["md5_log_directory"]
-        
+
         if not StartHandler._is_valid_log_dir(md5sum_log_dir):
-            raise ArteriaUsageException("{} is not a directory.!".format(md5sum_log_dir))
+            raise ArteriaUsageException(
+                    f"{md5sum_log_dir} is not a directory.!")
 
-        md5sum_log_file = "{}/{}_{}".format(md5sum_log_dir,
-                                            runfolder,
-                                            datetime.datetime.now().isoformat())
+        date = datetime.datetime.now().isoformat()
 
-        cmd = " ".join(["md5sum -c", path_to_md5_sum_file])
-        job_id = self.runner_service.start(cmd,
-                                           nbr_of_cores=1,
-                                           run_dir=monitored_dir,
-                                           stdout=md5sum_log_file,
-                                           stderr=md5sum_log_file)
+        relative_path_to_md5sum_file = os.path.join(
+                runfolder, request_data["path_to_md5_sum_file"])
+
+        cmd = ["md5sum",  "-c", relative_path_to_md5sum_file]
+
+        with open(f"{md5sum_log_dir}/{runfolder}_{date}", mode='w') as md5sum_log_file:
+            job_id = await self.runner_service.start(
+                    cmd,
+                    cwd=monitored_dir,
+                    stdout=md5sum_log_file,
+                    stderr=subprocess.STDOUT)
 
         status_end_point = "{0}://{1}{2}".format(
             self.request.protocol,
@@ -133,7 +145,7 @@ class StartHandler(BaseChecksumHandler):
                 "service_version": version,
                 "link": status_end_point,
                 "state": State.STARTED,
-                "md5sum_log": md5sum_log_file}
+                "md5sum_log": md5sum_log_file.name}
 
         self.set_status(202, reason="started processing")
         self.write_object(response_data)
@@ -152,15 +164,15 @@ class StatusHandler(BaseChecksumHandler):
         """
 
         if job_id:
-            status = {"state": self.runner_service.status(job_id)}
+            status = {"state": self.runner_service.status(int(job_id))}
         else:
             all_status = self.runner_service.status_all()
-            status_dict = {}
-            for k,v in all_status.iteritems():
-                status_dict[k] = {"state": v}
-            status = status_dict
+            status = {
+                    k: {"state": v} for k, v in all_status.items()
+                    }
 
         self.write_json(status)
+
 
 class StopHandler(BaseChecksumHandler):
     """
@@ -180,11 +192,10 @@ class StopHandler(BaseChecksumHandler):
                 self.set_status(200)
             elif job_id:
                 log.info("Attempting to stop job: {}".format(job_id))
-                self.runner_service.stop(job_id)
+                self.runner_service.stop(int(job_id))
                 self.set_status(200)
             else:
                 ArteriaUsageException("Unknown job to stop")
         except ArteriaUsageException as e:
-            log.warning("Failed stopping job: {}. Message: ".format(job_id, e.message))
-            self.send_error(500, reason=e.message)
-
+            log.warning("Failed stopping job: {job_id}. Message: {e}")
+            self.send_error(500, reason=e)
